@@ -1,0 +1,45 @@
+services:
+  api:
+    build: ./apps/api
+    environment:
+      APP_NAME: ${APP_NAME:-eGov Workflow Platform}
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://egov:egov@postgres:5432/egov}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      AUDIT_HMAC_KEY: ${AUDIT_HMAC_KEY:-change-me-before-production}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: egov
+      POSTGRES_USER: egov
+      POSTGRES_PASSWORD: egov
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U egov -d egov"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
